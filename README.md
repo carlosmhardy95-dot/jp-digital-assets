@@ -3,7 +3,8 @@
 Entrada de blog técnico publicada con **GitHub Pages**, sobre la migración del sitio de JP Digital Assets de un deploy por *arrastrar y soltar* a un flujo con **control de versiones**.
 
 ## 🔗 Entrada publicada
-- **Sitio (GitHub Pages):** https://carlosmhardy95.github.io/jp-digital-assets/
+- **Sitio (GitHub Pages):** https://carlosmhardy95-dot.github.io/jp-digital-assets/
+
 ## 📄 Contenido
 La entrada sigue la plantilla del trabajo:
 1. **Contexto** — el sitio-catálogo de JP Digital Assets (HTML de un solo archivo, WhatsApp, filtros, lightbox).
@@ -13,8 +14,8 @@ La entrada sigue la plantilla del trabajo:
 5. **Reflexión** — feedback radicalmente sincero (radical candor) aplicado al post-mortem y al testing.
 
 ## 🧾 Evidencia de control de versiones
-- Historial de commits: `../../commits/main`
-- Pull Request del arreglo: `../../pull/1`
+- Historial de commits: https://github.com/carlosmhardy95-dot/jp-digital-assets/commits/main
+- Pull Requests: https://github.com/carlosmhardy95-dot/jp-digital-assets/pulls
 
 ## 🛠️ Cómo se publica
 El sitio es un único archivo `index.html` servido por GitHub Pages desde la rama `main`
