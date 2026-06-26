@@ -3,8 +3,7 @@
 Entrada de blog técnico publicada con **GitHub Pages**, sobre la migración del sitio de JP Digital Assets de un deploy por *arrastrar y soltar* a un flujo con **control de versiones**.
 
 ## 🔗 Entrada publicada
-- **Sitio (GitHub Pages):** https://<usuario>.github.io/jp-digital-assets/  ← *reemplazá `<usuario>` por tu usuario real*
-
+- **Sitio (GitHub Pages):** https://carlosmhardy95.github.io/jp-digital-assets/
 ## 📄 Contenido
 La entrada sigue la plantilla del trabajo:
 1. **Contexto** — el sitio-catálogo de JP Digital Assets (HTML de un solo archivo, WhatsApp, filtros, lightbox).
