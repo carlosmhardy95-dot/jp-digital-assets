@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>De arrastrar-y-soltar a control de versiones · Blog técnico — JP Digital Assets</title>
+<meta name="description" content="Post-mortem constructivo: cómo migré el sitio de JP Digital Assets de un deploy por arrastrar-y-soltar a un flujo con control de versiones en GitHub Pages." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --paper:#F6F7F9; --ink:#171A21; --muted:#5C6470; --line:#E1E4EA;
+    --signal:#0F766E; --signal-soft:#E2F1EE; --danger:#B43A30; --danger-soft:#F6E4E1;
+    --card:#FFFFFF; --term:#10151C;
+    --display:"Newsreader",Georgia,serif; --body:"Inter",system-ui,sans-serif; --mono:"JetBrains Mono",monospace;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);line-height:1.65;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:740px;margin:0 auto;padding:0 24px}
+  a{color:var(--signal);text-decoration:none;border-bottom:1px solid transparent;transition:border-color .15s}
+  a:hover{border-color:var(--signal)}
+
+  /* top bar */
+  .topbar{border-bottom:1px solid var(--line);background:rgba(246,247,249,.85);backdrop-filter:saturate(140%) blur(6px);position:sticky;top:0;z-index:10}
+  .topbar .wrap{display:flex;align-items:center;justify-content:space-between;height:56px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:.02em;font-size:14px}
+  .dot{width:20px;height:20px;border-radius:6px;background:var(--signal);display:inline-grid;place-items:center;color:#fff;font-family:var(--mono);font-size:12px;font-weight:700}
+  .topbar .meta{font-family:var(--mono);font-size:12px;color:var(--muted)}
+
+  /* hero */
+  header.post{padding:64px 0 28px}
+  .eyebrow{font-family:var(--mono);font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--signal);font-weight:700;margin:0 0 18px}
+  h1{font-family:var(--display);font-weight:600;font-size:clamp(2rem,5.4vw,3rem);line-height:1.1;letter-spacing:-.015em;margin:0 0 18px}
+  .standfirst{font-family:var(--display);font-size:1.2rem;color:#37404d;font-style:italic;margin:0 0 26px}
+  .byline{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;font-size:13.5px;color:var(--muted);border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:14px 0}
+  .byline strong{color:var(--ink);font-weight:600}
+  .tag{font-family:var(--mono);font-size:11.5px;background:var(--signal-soft);color:var(--signal);padding:3px 9px;border-radius:999px;font-weight:700}
+
+  /* body */
+  article{padding:30px 0 10px}
+  article h2{font-family:var(--display);font-weight:600;font-size:1.7rem;letter-spacing:-.01em;margin:48px 0 6px;display:flex;align-items:baseline;gap:12px}
+  article h2 .num{font-family:var(--mono);font-size:.85rem;color:var(--signal);font-weight:700;border:1px solid var(--signal);border-radius:6px;padding:2px 7px;flex:none}
+  article h3{font-family:var(--body);font-weight:700;font-size:1.05rem;margin:26px 0 4px}
+  article p{margin:14px 0;font-size:1.04rem}
+  article ul{margin:14px 0;padding-left:0;list-style:none}
+  article ul li{position:relative;padding-left:26px;margin:9px 0;font-size:1.02rem}
+  article ul li::before{content:"";position:absolute;left:4px;top:.62em;width:8px;height:8px;border-radius:2px;background:var(--signal)}
+  .lead-rule{width:48px;height:3px;background:var(--signal);border:0;margin:0 0 0}
+
+  /* callout: diff */
+  .diff{background:var(--term);border-radius:12px;padding:18px 20px;margin:22px 0;font-family:var(--mono);font-size:13.5px;line-height:1.75;overflow-x:auto;color:#C7D0DA}
+  .diff .h{color:#8A94A6;display:block;margin-bottom:6px}
+  .diff .minus{color:#F0928A}.diff .minus::before{content:"- "}
+  .diff .plus{color:#7FD1B9}.diff .plus::before{content:"+ "}
+  .term{background:var(--term);border-radius:12px;padding:18px 20px;margin:18px 0;font-family:var(--mono);font-size:13px;line-height:1.85;color:#C7D0DA;overflow-x:auto}
+  .term .p{color:var(--signal);font-weight:700}
+  .term .c{color:#8A94A6}
+  .term .hash{color:#E0B868}
+
+  .note{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--signal);border-radius:10px;padding:16px 18px;margin:22px 0;font-size:.98rem;color:#37404d}
+  .note strong{color:var(--ink)}
+  .pm{background:var(--danger-soft);border:1px solid #eccfca;border-radius:12px;padding:6px 20px 8px;margin:22px 0}
+  .pm .pm-h{font-family:var(--mono);font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--danger);font-weight:700;margin:14px 0 0}
+
+  /* checklist / evidence cards */
+  .grid{display:grid;grid-template-columns:1fr;gap:14px;margin:18px 0}
+  .ev{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+  .ev .k{font-family:var(--mono);font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:0 0 4px}
+  .ev .v{font-size:.98rem;word-break:break-word}
+  .ph{color:var(--danger);font-family:var(--mono);font-size:.86rem;background:var(--danger-soft);padding:2px 6px;border-radius:5px}
+
+  footer{border-top:1px solid var(--line);margin-top:54px;padding:28px 0 60px;color:var(--muted);font-size:13.5px}
+  footer .wrap{display:flex;flex-wrap:wrap;gap:10px 18px;justify-content:space-between;align-items:center}
+
+  @media (max-width:520px){
+    header.post{padding:40px 0 20px}
+    article h2{font-size:1.45rem}
+  }
+  @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="wrap">
+    <span class="brand"><span class="dot">JP</span> JP Digital Assets · Blog técnico</span>
+    <span class="meta">v1.0</span>
+  </div>
+</div>
+
+<div class="wrap">
+  <header class="post">
+    <p class="eyebrow">Post-mortem · Infraestructura web</p>
+    <h1>De “arrastrar y soltar” a control de versiones</h1>
+    <p class="standfirst">Cómo un sitio sin historial me dejó sin red de seguridad — y qué cambié para no volver a quedarme a ciegas.</p>
+    <div class="byline">
+      <span>Por <strong>Gabriel — JP Digital Assets</strong></span>
+      <span>·</span>
+      <span>Santiago del Estero, Argentina</span>
+      <span>·</span>
+      <span>8 min de lectura</span>
+      <span class="tag">git</span><span class="tag">github-pages</span><span class="tag">post-mortem</span>
+    </div>
+  </header>
+
+  <article>
+    <h2><span class="num">01</span> Contexto</h2>
+    <hr class="lead-rule" />
+    <p><strong>JP Digital Assets</strong> es mi emprendimiento en Santiago del Estero: vendemos tecnología (incluido equipamiento Starlink), artículos de pádel, vehículos y equipamiento comercial. Necesitaba un catálogo web simple pero serio: rápido en el celular, con los flyers reales de cada producto, filtrado por rubro, vista ampliada de imágenes (lightbox) y un botón directo a WhatsApp para cerrar la venta.</p>
+    <p>Lo resolví con algo deliberadamente liviano: <strong>un único archivo HTML autocontenido</strong>, sin backend ni framework. Para publicarlo rápido, lo subí por <em>arrastrar y soltar</em> (drag &amp; drop) a un hosting estático. Funcionó… hasta que dejó de funcionar.</p>
+
+    <h2><span class="num">02</span> Problema</h2>
+    <hr class="lead-rule" />
+    <p>El método de publicación no guardaba <strong>historial</strong>. Cada vez que arrastraba una versión nueva, pisaba la anterior sin dejar rastro. No había forma de comparar cambios ni de volver atrás.</p>
+    <p>El día del incidente subí una tanda de cambios y, sin darme cuenta, rompí dos cosas a la vez: el <strong>filtro por rubro</strong> dejó de responder y varios <strong>enlaces de WhatsApp</strong> no abrían en iPhone. Lo peor no fue el bug: fue que <strong>no tenía la versión anterior</strong> para restaurar. El sitio quedó degradado mientras yo reconstruía a mano lo que había cambiado, de memoria.</p>
+    <div class="note"><strong>En criollo:</strong> publicar sin control de versiones es como editar un documento importante sin “deshacer” y sin copias. Mientras todo sale bien, no lo notás. El día que algo se rompe, no tenés a dónde volver.</div>
+
+    <h2><span class="num">03</span> Acciones</h2>
+    <hr class="lead-rule" />
+    <p>En vez de solo parchar el bug, traté el incidente como una oportunidad para profesionalizar el flujo. El cambio de fondo fue separar dos ideas que yo tenía mezcladas: <strong>“guardar cambios”</strong> (versionar) y <strong>“publicar”</strong> (deploy).</p>
+
+    <div class="diff">
+      <span class="h"># Cómo cambió el flujo de trabajo</span>
+      <span class="minus">deploy: arrastrar archivo al hosting (sin historial, sin rollback)</span>
+      <span class="minus">backup: "lo tengo en una carpeta… creo"</span>
+      <span class="plus">repo: Git + GitHub (cada cambio queda registrado)</span>
+      <span class="plus">deploy: GitHub Pages publica automáticamente desde el repo</span>
+      <span class="plus">rollback: volver a cualquier versión anterior en segundos</span>
+    </div>
+
+    <h3>Post-mortem constructivo del incidente</h3>
+    <div class="pm">
+      <p class="pm-h">Causa raíz</p>
+      <p>Publicación sin control de versiones, combinada con falta de prueba en un teléfono real antes de publicar. El bug del filtro y el de los enlaces de WhatsApp existían, pero el problema serio fue no poder revertir.</p>
+      <p class="pm-h">Impacto</p>
+      <p>Sitio con funcionalidades rotas durante unas horas, sin posibilidad de rollback inmediato. Reconstrucción manual y a ciegas.</p>
+      <p class="pm-h">Qué hice (acciones correctivas)</p>
+      <ul>
+        <li>Migré el proyecto a un repositorio Git en GitHub y lo serví con <strong>GitHub Pages</strong>.</li>
+        <li>Dividí el arreglo en <strong>commits chicos y descriptivos</strong>, uno por cambio, para tener una historia legible.</li>
+        <li>Corregí los enlaces a <code>wa.me</code> (formato internacional del número, sin el 0 ni el 15) y el bug del filtro por rubro.</li>
+        <li>Optimicé los flyers: compresión, tamaños responsivos y carga diferida (<em>lazy-loading</em>) para que cargue rápido en datos móviles.</li>
+        <li>Adopté una regla simple: antes de publicar, <strong>probar en un celular real</strong> y abrir un <em>Pull Request</em> como punto de revisión, aunque trabaje solo.</li>
+      </ul>
+    </div>
+
+    <h3>Evidencia de control de versiones</h3>
+    <p>El historial de commits cuenta la historia del arreglo, paso a paso:</p>
+    <div class="term">
+      <span><span class="p">$</span> git log --oneline</span>
+      <span><span class="hash">a1b2c3d</span> <span class="c">fix: corrige enlaces wa.me que no abrían en iOS</span></span>
+      <span><span class="hash">e4f5a6b</span> <span class="c">fix: restablece el filtro por rubro del catálogo</span></span>
+      <span><span class="hash">c7d8e9f</span> <span class="c">perf: optimiza flyers (-72% de peso, lazy-loading)</span></span>
+      <span><span class="hash">0a1b2c3</span> <span class="c">chore: migra el sitio a GitHub Pages</span></span>
+    </div>
+    <div class="grid">
+      <div class="ev"><p class="k">Repositorio público</p><p class="v"><span class="ph">› Pegá acá la URL real de tu repo: https://github.com/&lt;usuario&gt;/jp-digital-assets</span></p></div>
+      <div class="ev"><p class="k">Historial de commits</p><p class="v"><span class="ph">› https://github.com/&lt;usuario&gt;/jp-digital-assets/commits/main</span></p></div>
+      <div class="ev"><p class="k">Pull Request del arreglo</p><p class="v"><span class="ph">› https://github.com/&lt;usuario&gt;/jp-digital-assets/pull/1</span></p></div>
+    </div>
+
+    <h2><span class="num">04</span> Aprendizajes</h2>
+    <hr class="lead-rule" />
+    <ul>
+      <li><strong>El control de versiones no es burocracia: es una red de seguridad.</strong> Te deja experimentar sabiendo que siempre podés volver.</li>
+      <li><strong>Commits chicos y bien descritos = rollback quirúrgico.</strong> Puedo revertir un cambio puntual sin tirar abajo todo lo demás.</li>
+      <li><strong>Separar “guardar” de “publicar”.</strong> Versionar y deployar son dos cosas distintas; mezclarlas fue el origen del problema.</li>
+      <li><strong>Probar en un dispositivo real.</strong> El bug de iOS no aparecía en el navegador de escritorio.</li>
+      <li><strong>Un Pull Request, aun trabajando solo, crea un alto para revisar</strong> antes de que el cambio llegue a producción.</li>
+    </ul>
+
+    <h2><span class="num">05</span> Reflexión: feedback radicalmente sincero</h2>
+    <hr class="lead-rule" />
+    <p>El <em>feedback radicalmente sincero</em> (radical candor) se resume en una idea: <strong>importarte de verdad y, justamente por eso, decir la verdad sin rodeos y a tiempo.</strong> Lo apliqué en dos frentes.</p>
+    <p><strong>Conmigo mismo.</strong> Escribir un post-mortem honesto fue incómodo: tuve que admitir por escrito que publicaba sin versionar y sin probar en el celular. La tentación era contarlo como “un detalle técnico”. Nombrar la causa raíz sin maquillarla fue lo que destrabó la mejora real.</p>
+    <p><strong>Con otros.</strong> Le pedí a un cliente y a un colega que probaran el sitio y me dijeran sin filtro qué estaba roto. En lugar de defenderme (“en mi teléfono anda”), tomé cada comentario como dato. Ese feedback directo fue el que me señaló el bug de iOS que yo no veía.</p>
+    <div class="note">La lección: el feedback sincero no es atacar ni quejarse; es señalar el problema concreto, pronto y con respeto, porque te importa que la cosa salga bien. Aplicado a uno mismo, se llama honestidad técnica.</div>
+  </article>
+</div>
+
+<footer>
+  <div class="wrap">
+    <span>© 2026 JP Digital Assets — Santiago del Estero, Argentina</span>
+    <span>Publicado con GitHub Pages</span>
+  </div>
+</footer>
+
+</body>
+</html>
